@@ -17,18 +17,13 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     OUTPUT_VARIABLE PROJECT_VERSION_GITBRANCH)
 
-  # --always falls back to an abbreviated commit hash when no tags are
-  # reachable (e.g. a shallow clone that didn't fetch tags), so this
-  # succeeds instead of git exiting non-zero with
-  # "fatal: No names found, cannot describe anything."
+  # --always avoids a hard git failure when no tags are reachable (e.g. a shallow clone)
   execute_process(COMMAND git describe --tags --always
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     OUTPUT_VARIABLE PROJECT_VERSION_GITDESCRIBE
     ERROR_QUIET)
 
-  # Regular expression to extract major, minor, and patch numbers, if present.
-  # Quote the variable so this doesn't hard-error (not enough arguments) when
-  # it's empty, and only overwrite the placeholder version if it matched.
+  # Quoted so an empty match doesn't hard-error with too few arguments
   string(REGEX MATCH "([0-9]+)\\.([0-9]+)\\.([0-9]+)" _ "${PROJECT_VERSION_GITDESCRIBE}")
   if(CMAKE_MATCH_COUNT EQUAL 3)
     set(PROJECT_VERSION_MAJOR ${CMAKE_MATCH_1})
