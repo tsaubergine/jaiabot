@@ -17,16 +17,27 @@ if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/.git")
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
     OUTPUT_VARIABLE PROJECT_VERSION_GITBRANCH)
 
-  execute_process(COMMAND git describe --tags
+  # --always falls back to an abbreviated commit hash when no tags are
+  # reachable (e.g. a shallow clone that didn't fetch tags), so this
+  # succeeds instead of git exiting non-zero with
+  # "fatal: No names found, cannot describe anything."
+  execute_process(COMMAND git describe --tags --always
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-    OUTPUT_VARIABLE PROJECT_VERSION_GITDESCRIBE)
+    OUTPUT_VARIABLE PROJECT_VERSION_GITDESCRIBE
+    ERROR_QUIET)
 
-  # Regular expression to extract major, minor, and patch numbers
-  string(REGEX MATCH "([0-9]+)\\.([0-9]+)\\.([0-9]+)" _ ${PROJECT_VERSION_GITDESCRIBE})
-  set(PROJECT_VERSION_MAJOR ${CMAKE_MATCH_1})
-  set(PROJECT_VERSION_MINOR ${CMAKE_MATCH_2})
-  set(PROJECT_VERSION_PATCH ${CMAKE_MATCH_3})
- 
+  # Regular expression to extract major, minor, and patch numbers, if present.
+  # Quote the variable so this doesn't hard-error (not enough arguments) when
+  # it's empty, and only overwrite the placeholder version if it matched.
+  string(REGEX MATCH "([0-9]+)\\.([0-9]+)\\.([0-9]+)" _ "${PROJECT_VERSION_GITDESCRIBE}")
+  if(CMAKE_MATCH_COUNT EQUAL 3)
+    set(PROJECT_VERSION_MAJOR ${CMAKE_MATCH_1})
+    set(PROJECT_VERSION_MINOR ${CMAKE_MATCH_2})
+    set(PROJECT_VERSION_PATCH ${CMAKE_MATCH_3})
+  else()
+    message(WARNING "No version tags reachable from HEAD (shallow clone or tags not fetched?); using placeholder version ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}.${PROJECT_VERSION_PATCH}")
+  endif()
+
   message("MAJOR VERSION: ${PROJECT_VERSION_MAJOR}")
   message("MINOR VERSION: ${PROJECT_VERSION_MINOR}")
   message("PATCH VERSION: ${PROJECT_VERSION_PATCH}")
